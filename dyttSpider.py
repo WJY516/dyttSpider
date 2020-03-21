@@ -11,37 +11,39 @@ default_headers = {'Host': 'www.dytt8.net',
                    'Upgrade-Insecure-Requests': '1'}
 
 
-class dyttSpider:
+class DyttSpider:
+
     def __init__(self, g_headers=default_headers, index_url='https://www.dytt8.net/'):
         self.index_url = index_url
         self.headers = g_headers
         self.se = requests.session()
-        self.de_response = ''
-        self.dl_response = ''
+        self.response = ''
         self.li_mvdetail = []
 
-    def get_details(self, url):
-        self.de_response = self.se.get(url, headers=self.headers)
-        if self.de_response.status_code == 200:
-            text = self.de_response.content.decode('gbk', 'ignore')
-            html = etree.HTML(text)
-            li_mv_indexurl = html.xpath('//*[@class="tbspan"]//a/@href')
-            for item in li_mv_indexurl:
-                mvdetail = {'detail_url': self.index_url + item}
-                # TODO 判断是否有重复的
-                self.get_download_url(mvdetail['detail_url'], mvdetail)
-                self.li_mvdetail.append(mvdetail)
+    def get_html(self, url):
+        self.response = self.se.get(url, headers=self.headers)
+        if self.response.status_code == 200:
+            text = self.response.content.decode('gbk', 'ignore')
+            return text
         else:
-            pass
+            return
+
+    def get_details(self, url):
+        text = self.get_html(url)
+        html = etree.HTML(text)
+        li_mv_indexurl = html.xpath('//*[@class="tbspan"]//a/@href')
+        for item in li_mv_indexurl:
+            mvdetail = {'detail_url': self.index_url + item}
+            # TODO 判断是否有重复的
+            self.get_download_url(mvdetail['detail_url'], mvdetail)
+            self.li_mvdetail.append(mvdetail)
 
     def get_download_url(self, detail_url, detail):
-        self.dl_response = self.se.get(detail_url, headers=self.headers)
-        if self.dl_response.status_code == 200:
-            text = self.dl_response.content.decode('gbk', 'ignore')
-            html = etree.HTML(text)
-            title = html.xpath('//*[@class="title_all"]/h1/font/text()')
-            detail['name'] = title
-            download_url = html.xpath('//*[@style="WORD-WRAP: break-word"]//a/@href')
-            detail['download_url'] = download_url
-        else:
-            pass
+        text = self.get_html(url=detail_url)
+        html = etree.HTML(text)
+        title = html.xpath('//*[@class="title_all"]/h1/font/text()')
+        detail['name'] = title
+        thunder_url = html.xpath('//*[@style="WORD-WRAP: break-word"]//a/@href')
+        detail['thunder_url'] = thunder_url
+        magnetic_url = html.xpath('//*[@id="Zoom"]//a//@href')
+        detail['magnetic_url'] = magnetic_url[0]
